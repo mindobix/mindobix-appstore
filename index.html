@@ -268,6 +268,13 @@
           transparent 60%
         );
       }
+      .app-card[data-color="rose"]::before {
+        background: radial-gradient(
+          ellipse at top left,
+          rgba(244, 63, 94, 0.1) 0%,
+          transparent 60%
+        );
+      }
 
       /* ── CARD TOP ROW ── */
       .card-top {
@@ -318,7 +325,6 @@
         flex-direction: column;
         gap: 8px;
       }
-
       .card-title {
         font-size: 18px;
         font-weight: 800;
@@ -414,6 +420,16 @@
       .app-card:hover .card-arrow.amber {
         border-color: #f59e0b;
         color: #fcd34d;
+      }
+      .app-card[data-color="rose"] .card-icon {
+        background: rgba(244, 63, 94, 0.15);
+      }
+      .pill-rose {
+        background: linear-gradient(135deg, #f43f5e, #e11d48);
+      }
+      .app-card:hover .card-arrow.rose {
+        border-color: #f43f5e;
+        color: #fb7185;
       }
 
       /* ── FOOTER ── */
@@ -515,6 +531,32 @@
             </div>
           </div>
           <div class="card-pill pill-emerald">
+            <span class="pill-dot"></span>Finance
+          </div>
+        </a>
+
+        <!-- Monthly BillPay -->
+        <a
+          class="app-card"
+          href="./local-billpay-tracker/index.html"
+          data-color="rose"
+          target="_blank"
+          rel="noopener"
+        >
+          <div class="card-top">
+            <div class="card-icon" style="background: rgba(244, 63, 94, 0.15)">
+              💸
+            </div>
+            <div class="card-arrow rose">&#8599;</div>
+          </div>
+          <div class="card-body">
+            <div class="card-title">Monthly BillPay</div>
+            <div class="card-desc">
+              Track monthly bills on a calendar, manage subscriptions, and
+              filter by category &amp; payment method — all stored locally.
+            </div>
+          </div>
+          <div class="card-pill pill-rose">
             <span class="pill-dot"></span>Finance
           </div>
         </a>
