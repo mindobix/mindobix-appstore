@@ -18,6 +18,12 @@ A zero-config HTTP/HTTPS proxy with a real-time dashboard. Inspect, debug, and e
 
 ---
 
+### [MyCareerPulse](https://github.com/mindobix/MyCareerPulse)
+
+A fully local AI career intelligence platform. Scores job postings against your skills, tailors resumes for specific roles, and builds a living Synthetic Career Profile from your resume and GitHub — no cloud, no API keys, no subscriptions.
+
+---
+
 ### [ShareAnyJSON](https://github.com/mindobix/local-shareanyjson)
 
 A zero-backend JSON configuration manager for development teams. Create, edit, version, template, and promote JSON config files across environments — file explorer, UI form view, version history, and backup/restore, all in the browser.
