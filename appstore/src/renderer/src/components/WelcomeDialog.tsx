@@ -2,11 +2,13 @@ import React, { useState } from 'react'
 
 interface Props {
   onDone: (folder: string, backupFolder?: string) => void
+  initialFolder?: string
+  initialBackupFolder?: string
 }
 
-export default function WelcomeDialog({ onDone }: Props) {
-  const [folder, setFolder] = useState('')
-  const [backupFolder, setBackupFolder] = useState('')
+export default function WelcomeDialog({ onDone, initialFolder = '', initialBackupFolder = '' }: Props) {
+  const [folder, setFolder] = useState(initialFolder)
+  const [backupFolder, setBackupFolder] = useState(initialBackupFolder)
   const [error, setError] = useState('')
 
   const pick = async () => {

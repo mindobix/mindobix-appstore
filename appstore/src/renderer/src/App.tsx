@@ -56,8 +56,12 @@ export default function App() {
   }
 
   if (!settings || settings.firstRun || !settings.localFolder) {
-    return <WelcomeDialog onDone={handleSetupDone} />
+    return <WelcomeDialog onDone={handleSetupDone} initialFolder={settings?.localFolder} initialBackupFolder={settings?.appstoreBackupFolder} />
   }
 
-  return <Store settings={settings} onChangeFolder={() => setSettings(s => s ? { ...s, firstRun: true } : s)} />
+  return <Store settings={settings} onChangeFolder={() => {
+    const next = { ...settings, firstRun: true }
+    setSettings(next)
+    window.api.saveSettings(next)
+  }} />
 }
