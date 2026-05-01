@@ -1,5 +1,14 @@
 .DS_Store
 
+# Electron app
+appstore/node_modules/
+appstore/out/
+appstore/dist/
+
+# local-my-pwds-keys is sensitive — never commit
+local-my-pwds-keys/
+local-dailywealth/
+
 local-billpay-tracker/
 local-habit-calendar/
 local-recipebook/

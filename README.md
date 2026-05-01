@@ -1,72 +1,129 @@
 # Mindobix · App Store
 
-A dynamic, offline-first App Store for all [Mindobix](https://github.com/mindobix) local web apps. No backend, no accounts — open `index.html` and go.
+A desktop App Store for all [Mindobix](https://github.com/mindobix) local web apps — built with Electron. Browse, clone, and launch apps without ever opening a terminal or browser.
 
 ---
 
-## What it does
+## Features
 
-- **Fetches all public repos** from the Mindobix GitHub org automatically on every load
-- **Detects what's cloned** — shows a green **Open** button for locally installed apps and an indigo **Get** button for ones you haven't cloned yet
-- **One-click clone** — clicking Get copies the full `git clone` command to your clipboard
+- **Browse all apps** from the curated `clones.json` registry — no GitHub API calls needed
+- **One-click clone** — clones the repo directly into your chosen local folder with live progress output
+- **Launch in its own window** — each app opens in a dedicated Electron window, not your browser
+- **Python / npm server apps** — auto-finds a free port, starts the server, and launches the app window
+- **Circular install badge** — each card shows a ring indicator when the app is installed
+- **Install ring in the header** — shows X / Y apps installed at a glance
 - **Search + filter** — by All · Installed · Available · or any category tab
-- **Refresh on demand** — re-scans GitHub and re-checks clone status without a full page reload
+- **Single instance** — launching a second instance kills the previous one automatically
+- **System tray** — lives in the menu bar / taskbar when running
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Clone this repo into your projects folder
 git clone https://github.com/mindobix/mindbox-appstore.git
-
-# 2. Serve the parent folder over HTTP (required for clone detection)
-cd ..
-python3 -m http.server 8080
-
-# 3. Open the store
-open http://localhost:8080/mindbox-appstore/
+cd mindbox-appstore/appstore
+npm install
+npm run dev
 ```
 
-> **Why a local server?** Clone detection works by sending `HEAD` requests to sibling paths (`../repo-name/index.html`). Browsers block those requests on `file://` URLs. On `file://` the store still loads and shows all GitHub repos — it just can't auto-detect which are installed. Clicking **Try ↗** will still open a cloned app if it exists.
+On first launch a **Welcome dialog** asks you to choose a local folder. All apps will be cloned into that folder.
 
 ---
 
-## Directory layout
-
-All repos must live as **siblings** in the same parent folder:
+## Project layout
 
 ```
-projects/                              ← any name works
-├── mindbox-appstore/                    ← this repo (the store)
-│   └── index.html
-├── local-trading-journal/
-├── local-vibecoding-appideas/
-├── MyCareerPulse/
-├── local-my-pwds-keys/
-├── local-api-web-proxy/
-├── local-shareanyjson/
-├── local-filesync/
-├── local-keywords-files-finder/
-├── local-recipebook/
-├── myfamilytree/
-├── local-billpay-tracker/
-├── local-weekly-options-trade-plan/
-├── local-habit-calendar/
-├── local-dailywealth/
-└── medreview/
+mindbox-appstore/
+├── index.html                  ← legacy web-only store (static)
+├── README.md
+└── appstore/                   ← Electron desktop app
+    ├── package.json
+    ├── electron.vite.config.ts
+    ├── electron-builder.yml
+    ├── clones.json              ← app registry (source of truth)
+    ├── build/
+    │   └── icon.png             ← 1024×1024 app icon (all platforms)
+    ├── scripts/
+    │   └── gen-icon.js          ← regenerate icon.png programmatically
+    └── src/
+        ├── main/
+        │   ├── index.ts         ← Electron main process
+        │   ├── ipc.ts           ← IPC handlers (clone, launch, server)
+        │   └── db.ts            ← settings persistence (JSON)
+        ├── preload/
+        │   └── index.ts         ← contextBridge API surface
+        └── renderer/
+            └── src/
+                ├── App.tsx
+                ├── clones.json  ← copy of registry for the renderer
+                ├── pages/
+                │   └── Store.tsx
+                └── components/
+                    ├── AppCard.tsx
+                    ├── CloneProgress.tsx
+                    ├── InstalledRing.tsx
+                    └── WelcomeDialog.tsx
 ```
-
-Clone any subset — the store shows everything from GitHub and highlights only what you have installed.
 
 ---
 
-## Adding a new app to the store
+## Adding a new app
 
-New public repos under the `mindobix` org appear in the store automatically on the next load. To add rich metadata (icon, color, category, featured flag), add an entry to the `META` object in `index.html`:
+Edit **both** copies of `clones.json`:
 
-```js
-'your-repo-name': { icon:'🚀', color:'#10b981', bg:'rgba(16,185,129,.15)', cat:'Dev Tools', featured:false },
+- `appstore/clones.json`
+- `appstore/src/renderer/src/clones.json`
+
+Add an entry with this shape:
+
+```json
+{
+  "id": "my-repo-name",
+  "displayName": "My App",
+  "repo": "https://github.com/mindobix/my-repo-name",
+  "description": "One-line description shown on the card.",
+  "icon": "🚀",
+  "color": "#10b981",
+  "bg": "rgba(16,185,129,.15)",
+  "category": "Dev Tools",
+  "featured": false,
+  "startType": "static",
+  "indexFile": "index.html"
+}
 ```
 
-A display name override can be added to `DISPLAY_NAMES` in the same file.
+`startType` options:
+
+| Value | Behaviour |
+|---|---|
+| `"static"` | Opens `file://localFolder/id/indexFile` in an Electron window |
+| `"python"` | Runs `startScript` (e.g. `python3 app.py`), finds a free port, opens `http://localhost:PORT` |
+| `"npm"` | Runs `startScript` (e.g. `npm start`), finds a free port, opens `http://localhost:PORT` |
+
+---
+
+## Building a distributable
+
+```bash
+# macOS (universal DMG)
+npm run dist:mac
+
+# Windows (NSIS installer)
+npm run dist:win
+
+# Linux (AppImage)
+npm run dist:linux
+```
+
+Outputs land in `appstore/dist/`.
+
+---
+
+## Replacing the app icon
+
+Drop a 1024×1024 PNG at `appstore/build/icon.png`. electron-builder converts it to `.icns` (macOS), `.ico` (Windows), and uses the PNG directly for Linux. To regenerate the default orb icon:
+
+```bash
+node appstore/scripts/gen-icon.js
+```

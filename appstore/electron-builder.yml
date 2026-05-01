@@ -1,0 +1,42 @@
+appId: com.mindobix.appstore
+productName: Mindobix App Store
+copyright: Copyright © 2025 Mindobix
+
+directories:
+  buildResources: build
+
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+
+files:
+  - out/**/*
+  - clones.json
+
+mac:
+  icon: build/icon.png
+  category: public.app-category.productivity
+  darkModeSupport: true
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+  dmg:
+    title: Mindobix App Store
+
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch:
+        - x64
+  nsis:
+    oneClick: false
+    allowToChangeInstallationDirectory: true
+
+linux:
+  icon: build/icon.png
+  category: Network
+  target:
+    - target: AppImage
