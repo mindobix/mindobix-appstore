@@ -18,14 +18,14 @@ A dynamic, offline-first App Store for all [Mindobix](https://github.com/mindobi
 
 ```bash
 # 1. Clone this repo into your projects folder
-git clone https://github.com/mindobix/local-web-apps.git
+git clone https://github.com/mindobix/mindbox-appstore.git
 
 # 2. Serve the parent folder over HTTP (required for clone detection)
 cd ..
 python3 -m http.server 8080
 
 # 3. Open the store
-open http://localhost:8080/local-web-apps/
+open http://localhost:8080/mindbox-appstore/
 ```
 
 > **Why a local server?** Clone detection works by sending `HEAD` requests to sibling paths (`../repo-name/index.html`). Browsers block those requests on `file://` URLs. On `file://` the store still loads and shows all GitHub repos — it just can't auto-detect which are installed. Clicking **Try ↗** will still open a cloned app if it exists.
@@ -38,7 +38,7 @@ All repos must live as **siblings** in the same parent folder:
 
 ```
 projects/                              ← any name works
-├── local-web-apps/                    ← this repo (the store)
+├── mindbox-appstore/                    ← this repo (the store)
 │   └── index.html
 ├── local-trading-journal/
 ├── local-vibecoding-appideas/
