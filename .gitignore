@@ -4,6 +4,7 @@
 appstore/node_modules/
 appstore/out/
 appstore/dist/
+releases/
 
 # local-my-pwds-keys is sensitive — never commit
 local-my-pwds-keys/

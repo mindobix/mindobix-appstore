@@ -7,9 +7,9 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
-    "dist:mac": "npm run build && electron-builder --mac && node scripts/copy-release.js && node scripts/publish-release.js",
-    "dist:win": "npm run build && electron-builder --win && node scripts/copy-release.js && node scripts/publish-release.js",
-    "dist:linux": "npm run build && electron-builder --linux && node scripts/copy-release.js && node scripts/publish-release.js"
+    "dist:mac": "npm run build && electron-builder --mac && node scripts/publish-release.js",
+    "dist:win": "npm run build && electron-builder --win && node scripts/publish-release.js",
+    "dist:linux": "npm run build && electron-builder --linux && node scripts/publish-release.js"
   },
   "build": {
     "appId": "com.mindobix.appstore",
