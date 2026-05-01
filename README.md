@@ -4,6 +4,16 @@ A desktop App Store for all [Mindobix](https://github.com/mindobix) local web ap
 
 ---
 
+## Download
+
+| Platform | Architecture | File |
+|---|---|---|
+| macOS | Apple Silicon (M1/M2/M3/M4) | [Mindobix App Store-1.0.0-arm64.dmg](releases/latest/Mindobix%20App%20Store-1.0.0-arm64.dmg) |
+
+> More platforms (macOS Intel, Windows, Linux) will appear here after each platform build via `npm run dist:*`.
+
+---
+
 ## Features
 
 - **Browse all apps** from the curated `clones.json` registry — no GitHub API calls needed
