@@ -20,6 +20,8 @@ declare global {
       onCloneProgress: (cb: (d: { appId: string; line: string }) => void) => () => void
       onServerLog: (cb: (d: { appId: string; line: string }) => void) => () => void
       onServerStopped: (cb: (d: { appId: string }) => void) => () => void
+      getFavorites: () => Promise<string[]>
+      saveFavorites: (ids: string[]) => Promise<{ ok: boolean }>
       getBackupState: () => Promise<{ folders: Record<string, string>; history: Record<string, BackupRecord> }>
       setBackupFolder: (appId: string) => Promise<string | null>
       openFolder: (folderPath: string) => Promise<string>

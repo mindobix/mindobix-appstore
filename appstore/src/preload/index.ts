@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld('api', {
     return () => ipcRenderer.removeListener('server-stopped', handler)
   },
 
+  getFavorites: () => ipcRenderer.invoke('get-favorites'),
+  saveFavorites: (ids: string[]) => ipcRenderer.invoke('save-favorites', ids),
+
   getBackupState: () => ipcRenderer.invoke('get-backup-state'),
   setBackupFolder: (appId: string) => ipcRenderer.invoke('set-backup-folder', appId),
   openFolder: (folderPath: string) => ipcRenderer.invoke('open-folder', folderPath),

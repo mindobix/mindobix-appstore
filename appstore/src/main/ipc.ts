@@ -230,6 +230,13 @@ export function setupIPC(mainWindow: BrowserWindow): () => void {
   })
 
   // ── Backup handlers ──────────────────────────────────────────────────────
+  ipcMain.handle('get-favorites', () => db.getFavorites())
+
+  ipcMain.handle('save-favorites', (_e, ids: string[]) => {
+    db.saveFavorites(ids)
+    return { ok: true }
+  })
+
   ipcMain.handle('get-backup-state', () => ({
     folders: db.getBackupFolders(),
     history: db.getBackupHistory()

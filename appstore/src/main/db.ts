@@ -24,13 +24,15 @@ interface DbData {
   cloneHistory: Record<string, CloneRecord>
   backupFolders: Record<string, string>
   backupHistory: Record<string, BackupRecord>
+  favorites: string[]
 }
 
 const defaults: DbData = {
   settings: { localFolder: '', firstRun: true },
   cloneHistory: {},
   backupFolders: {},
-  backupHistory: {}
+  backupHistory: {},
+  favorites: []
 }
 
 function dbPath(): string {
@@ -93,5 +95,15 @@ export function getBackupHistory(): Record<string, BackupRecord> {
 export function recordBackup(appId: string, record: BackupRecord): void {
   const db = load()
   db.backupHistory[appId] = record
+  save(db)
+}
+
+export function getFavorites(): string[] {
+  return load().favorites ?? []
+}
+
+export function saveFavorites(ids: string[]): void {
+  const db = load()
+  db.favorites = ids
   save(db)
 }

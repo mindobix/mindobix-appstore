@@ -26,9 +26,7 @@ export default function Store({ settings, onChangeFolder }: Props) {
   const [servers, setServers] = useState<Record<string, number>>({})
   const [filter, setFilter] = useState<Filter>(() => localStorage.getItem('activeTab') ?? 'all')
   const setFilterAndPersist = (f: Filter) => { setFilter(f); localStorage.setItem('activeTab', f) }
-  const [favorites, setFavorites] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('favorites') ?? '[]')) } catch { return new Set() }
-  })
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [cloneState, setCloneState] = useState<CloneState | null>(null)
   const [cloningIds, setCloningIds] = useState<Set<string>>(new Set())
@@ -47,6 +45,7 @@ export default function Store({ settings, onChangeFolder }: Props) {
 
   useEffect(() => {
     loadStatuses()
+    window.api.getFavorites().then(ids => setFavorites(new Set(ids)))
     window.api.getBackupState().then(({ folders, history }) => {
       setBackupFolders(folders)
       setBackupHistory(history)
@@ -150,7 +149,7 @@ export default function Store({ settings, onChangeFolder }: Props) {
     setFavorites(prev => {
       const next = new Set(prev)
       next.has(appId) ? next.delete(appId) : next.add(appId)
-      localStorage.setItem('favorites', JSON.stringify([...next]))
+      window.api.saveFavorites([...next])
       return next
     })
   }
