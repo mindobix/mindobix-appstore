@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow, app } from 'electron'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -248,13 +248,68 @@ export function setupIPC(mainWindow: BrowserWindow): () => void {
 
   ipcMain.handle('open-folder', (_e, folderPath: string) => shell.openPath(folderPath))
 
+  // ── Appstore self-backup / restore ───────────────────────────────────────
+  ipcMain.handle('backup-appstore', () => {
+    try {
+      const dbFile = path.join(app.getPath('userData'), 'appstore.json')
+      if (!fs.existsSync(dbFile)) return { error: 'No settings saved yet' }
+      const date = new Date().toISOString().slice(0, 10)
+      const fileName = `mindobix-appstore-backup-${date}.json`
+      fs.copyFileSync(dbFile, path.join(DOWNLOADS, fileName))
+      return { ok: true, fileName }
+    } catch (err: unknown) { return { error: (err as Error).message } }
+  })
+
+  ipcMain.handle('restore-appstore', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'Mindobix Backup', extensions: ['json'] }],
+      title: 'Restore Mindobix App Store backup'
+    })
+    if (result.canceled) return { ok: false }
+    try {
+      const raw = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf-8'))
+      if (!raw.settings) return { error: 'Invalid backup file' }
+      raw.settings.firstRun = false
+      const dbFile = path.join(app.getPath('userData'), 'appstore.json')
+      fs.writeFileSync(dbFile, JSON.stringify(raw, null, 2))
+      return { ok: true }
+    } catch (err: unknown) { return { error: (err as Error).message } }
+  })
+
   // ── Downloads poller ─────────────────────────────────────────────────────
-  // Watches ~/Downloads every 3 s for files matching each app's backupPattern.
+  // Watches ~/Downloads every 3 s for files matching each app's backupPattern
+  // AND mindobix-appstore-backup-*.json (for the appstore itself).
   // Uses a two-tick size-stability check to avoid copying partial writes.
   let backupPollTimer: ReturnType<typeof setInterval> | null = null
+  const APPSTORE_PATTERN = patternToRegex('mindobix-appstore-backup-*.json')
 
-  if (BACKUP_APPS.length > 0 && fs.existsSync(DOWNLOADS)) {
+  if (fs.existsSync(DOWNLOADS)) {
     const seenSizes = new Map<string, number>()
+
+    const copyIfStable = (entry: string, destFolder: string, appId: string) => {
+      const srcPath = path.join(DOWNLOADS, entry)
+      let stat: fs.Stats
+      try { stat = fs.statSync(srcPath) } catch { return }
+      if (!stat.isFile()) return
+
+      const prevSize = seenSizes.get(srcPath)
+      seenSizes.set(srcPath, stat.size)
+      if (prevSize === undefined || prevSize !== stat.size) return
+
+      const destPath = path.join(destFolder, entry)
+      if (fs.existsSync(destPath)) return
+
+      try {
+        fs.mkdirSync(destFolder, { recursive: true })
+        fs.copyFileSync(srcPath, destPath)
+        const record = { fileName: entry, copiedAt: new Date().toISOString(), destPath }
+        db.recordBackup(appId, record)
+        if (!mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('backup-copied', { appId, record })
+        }
+      } catch { /* retry next tick */ }
+    }
 
     backupPollTimer = setInterval(() => {
       let entries: string[]
@@ -262,37 +317,21 @@ export function setupIPC(mainWindow: BrowserWindow): () => void {
 
       const backupFolders = db.getBackupFolders()
 
+      // Per-app backups
       for (const appDef of BACKUP_APPS) {
         const destFolder = backupFolders[appDef.id]
         if (!destFolder) continue
-
         const regex = patternToRegex(appDef.backupPattern!)
-
         for (const entry of entries) {
-          if (!regex.test(entry)) continue
+          if (regex.test(entry)) copyIfStable(entry, destFolder, appDef.id)
+        }
+      }
 
-          const srcPath = path.join(DOWNLOADS, entry)
-          let stat: fs.Stats
-          try { stat = fs.statSync(srcPath) } catch { continue }
-          if (!stat.isFile()) continue
-
-          // Two-tick stability: skip on first sight, copy once size is stable
-          const prevSize = seenSizes.get(srcPath)
-          seenSizes.set(srcPath, stat.size)
-          if (prevSize === undefined || prevSize !== stat.size) continue
-
-          const destPath = path.join(destFolder, entry)
-          if (fs.existsSync(destPath)) continue // already copied
-
-          try {
-            fs.mkdirSync(destFolder, { recursive: true })
-            fs.copyFileSync(srcPath, destPath)
-            const record = { fileName: entry, copiedAt: new Date().toISOString(), destPath }
-            db.recordBackup(appDef.id, record)
-            if (!mainWindow.isDestroyed()) {
-              mainWindow.webContents.send('backup-copied', { appId: appDef.id, record })
-            }
-          } catch { /* skip failed copies, retry next tick */ }
+      // Appstore self-backup
+      const appstoreBackupFolder = db.getSettings().appstoreBackupFolder
+      if (appstoreBackupFolder) {
+        for (const entry of entries) {
+          if (APPSTORE_PATTERN.test(entry)) copyIfStable(entry, appstoreBackupFolder, '__appstore__')
         }
       }
     }, 3000)

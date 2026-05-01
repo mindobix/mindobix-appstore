@@ -39,5 +39,8 @@ contextBridge.exposeInMainWorld('api', {
     const handler = (_: Electron.IpcRendererEvent, data: { appId: string; record: { fileName: string; copiedAt: string; destPath: string } }) => cb(data)
     ipcRenderer.on('backup-copied', handler)
     return () => ipcRenderer.removeListener('backup-copied', handler)
-  }
+  },
+
+  backupAppstore: () => ipcRenderer.invoke('backup-appstore'),
+  restoreAppstore: () => ipcRenderer.invoke('restore-appstore'),
 })

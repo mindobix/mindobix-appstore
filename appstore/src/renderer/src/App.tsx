@@ -24,6 +24,8 @@ declare global {
       setBackupFolder: (appId: string) => Promise<string | null>
       openFolder: (folderPath: string) => Promise<string>
       onBackupCopied: (cb: (d: { appId: string; record: BackupRecord }) => void) => () => void
+      backupAppstore: () => Promise<{ ok?: boolean; fileName?: string; error?: string }>
+      restoreAppstore: () => Promise<{ ok: boolean; error?: string }>
     }
   }
 }
@@ -39,8 +41,8 @@ export default function App() {
     })
   }, [])
 
-  const handleSetupDone = (folder: string) => {
-    const next: Settings = { localFolder: folder, firstRun: false }
+  const handleSetupDone = (folder: string, backupFolder?: string) => {
+    const next: Settings = { localFolder: folder, firstRun: false, ...(backupFolder ? { appstoreBackupFolder: backupFolder } : {}) }
     setSettings(next)
     window.api.saveSettings(next)
   }

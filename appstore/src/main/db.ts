@@ -5,6 +5,7 @@ import fs from 'fs'
 interface Settings {
   localFolder: string
   firstRun: boolean
+  appstoreBackupFolder?: string
 }
 
 interface CloneRecord {

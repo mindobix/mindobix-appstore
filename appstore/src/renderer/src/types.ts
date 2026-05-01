@@ -23,6 +23,7 @@ export interface BackupRecord {
 export interface Settings {
   localFolder: string
   firstRun: boolean
+  appstoreBackupFolder?: string
 }
 
 export interface CloneProgress {

@@ -134,6 +134,18 @@ export default function Store({ settings, onChangeFolder }: Props) {
     if (err) showToast('Backup folder not found')
   }
 
+  const handleBackupAppstore = async () => {
+    const result = await window.api.backupAppstore()
+    if (result.ok) showToast(`Backup saved: ${result.fileName}`)
+    else showToast(`Backup failed: ${result.error}`)
+  }
+
+  const handleRestoreAppstore = async () => {
+    const result = await window.api.restoreAppstore()
+    if (result.ok) { showToast('Restored — reloading…'); setTimeout(() => window.location.reload(), 1200) }
+    else if (result.error) showToast(`Restore failed: ${result.error}`)
+  }
+
   const toggleFavorite = (appId: string) => {
     setFavorites(prev => {
       const next = new Set(prev)
@@ -183,6 +195,22 @@ export default function Store({ settings, onChangeFolder }: Props) {
 
         <div className="no-drag ml-auto flex items-center gap-3">
           <InstalledRing installed={installedCount} total={APPS.length} />
+
+          <button
+            onClick={handleBackupAppstore}
+            title="Backup appstore settings to Downloads"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#64748b] hover:text-[#f59e0b] hover:bg-white/10 transition-colors text-base"
+          >
+            ↓
+          </button>
+
+          <button
+            onClick={handleRestoreAppstore}
+            title="Restore appstore settings from backup"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#64748b] hover:text-[#f59e0b] hover:bg-white/10 transition-colors text-base"
+          >
+            ↑
+          </button>
 
           <button
             onClick={handleRefresh}
