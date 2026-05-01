@@ -20,9 +20,13 @@ A desktop App Store for all [Mindobix](https://github.com/mindobix) local web ap
 - **One-click clone** — clones the repo directly into your chosen local folder with live progress output
 - **Launch in its own window** — each app opens in a dedicated Electron window, not your browser
 - **Python / npm server apps** — auto-finds a free port, starts the server, and launches the app window
+- **Favorites** — heart icon on every card; Favorites tab for quick access, persisted across sessions
+- **Per-app backup folders** — set a local folder per app; files matching the app's pattern are auto-copied from `~/Downloads` as soon as they are stable
+- **Appstore backup & restore** — export your settings/history to `~/Downloads` with one click (↓), restore from any backup file (↑); optional auto-copy when a backup lands in Downloads
+- **Search + filter** — by All · Installed · Available · Favorites · or any category tab; active tab persists across restarts
 - **Circular install badge** — each card shows a ring indicator when the app is installed
 - **Install ring in the header** — shows X / Y apps installed at a glance
-- **Search + filter** — by All · Installed · Available · or any category tab
+- **macOS hide-on-close** — red X hides to the tray; Quit / Force Quit in the tray menu exits completely
 - **Single instance** — launching a second instance kills the previous one automatically
 - **System tray** — lives in the menu bar / taskbar when running
 
@@ -31,42 +35,44 @@ A desktop App Store for all [Mindobix](https://github.com/mindobix) local web ap
 ## Quick start
 
 ```bash
-git clone https://github.com/mindobix/mindbox-appstore.git
-cd mindbox-appstore/appstore
+git clone https://github.com/mindobix/mindobix-appstore.git
+cd mindobix-appstore/appstore
 npm install
 npm run dev
 ```
 
-On first launch a **Welcome dialog** asks you to choose a local folder. All apps will be cloned into that folder.
+On first launch a **Welcome dialog** asks you to choose a local apps folder and an optional appstore backup folder.
 
 ---
 
 ## Project layout
 
 ```
-mindbox-appstore/
+mindobix-appstore/
 ├── index.html                  ← legacy web-only store (static)
 ├── README.md
 └── appstore/                   ← Electron desktop app
     ├── package.json
     ├── electron.vite.config.ts
     ├── electron-builder.yml
-    ├── clones.json              ← app registry (source of truth)
+    ├── clones.json              ← app registry (source of truth for main process)
     ├── build/
     │   └── icon.png             ← 1024×1024 app icon (all platforms)
     ├── scripts/
-    │   └── gen-icon.js          ← regenerate icon.png programmatically
+    │   ├── gen-icon.js          ← regenerate icon.png programmatically
+    │   └── publish-release.js   ← upload dist artifacts to GitHub Releases
     └── src/
         ├── main/
-        │   ├── index.ts         ← Electron main process
-        │   ├── ipc.ts           ← IPC handlers (clone, launch, server)
-        │   └── db.ts            ← settings persistence (JSON)
+        │   ├── index.ts         ← Electron main process, tray, hide-on-close
+        │   ├── ipc.ts           ← IPC handlers (clone, launch, server, backup)
+        │   └── db.ts            ← settings persistence (userData/appstore.json)
         ├── preload/
         │   └── index.ts         ← contextBridge API surface
         └── renderer/
             └── src/
                 ├── App.tsx
                 ├── clones.json  ← copy of registry for the renderer
+                ├── types.ts
                 ├── pages/
                 │   └── Store.tsx
                 └── components/
@@ -99,7 +105,8 @@ Add an entry with this shape:
   "category": "Dev Tools",
   "featured": false,
   "startType": "static",
-  "indexFile": "index.html"
+  "indexFile": "index.html",
+  "backupPattern": "myapp-backup-*.json"
 }
 ```
 
@@ -110,6 +117,8 @@ Add an entry with this shape:
 | `"static"` | Opens `file://localFolder/id/indexFile` in an Electron window |
 | `"python"` | Runs `startScript` (e.g. `python3 app.py`), finds a free port, opens `http://localhost:PORT` |
 | `"npm"` | Runs `startScript` (e.g. `npm start`), finds a free port, opens `http://localhost:PORT` |
+
+`backupPattern` (optional) — a glob-style filename pattern (supports `*`). When set, the Downloads poller watches for matching files and copies them to the app's configured backup folder automatically.
 
 ---
 
@@ -126,7 +135,7 @@ npm run dist:win
 npm run dist:linux
 ```
 
-Outputs land in `appstore/dist/`.
+Each command builds the app and then runs `scripts/publish-release.js` to upload artifacts to the matching GitHub Release tag.
 
 ---
 

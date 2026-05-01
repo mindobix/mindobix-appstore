@@ -12,8 +12,8 @@ The app lives in `appstore/`. The repo root also contains `index.html` — a leg
 
 ```
 Main process (Node.js / Electron)
-  src/main/index.ts   — window, tray, single-instance kill
-  src/main/ipc.ts     — all IPC handlers
+  src/main/index.ts   — window, tray, hide-on-close, single-instance kill
+  src/main/ipc.ts     — all IPC handlers (clone, launch, server, backup)
   src/main/db.ts      — JSON settings persistence (userData/appstore.json)
 
 Preload
@@ -34,7 +34,7 @@ Renderer (React + Tailwind)
 
 ### App registry
 `clones.json` is the single source of truth for which apps are shown. It exists in **two places** that must be kept in sync:
-- `appstore/clones.json` — used by electron-builder packaging
+- `appstore/clones.json` — used by electron-builder packaging and the main process
 - `appstore/src/renderer/src/clones.json` — imported by the renderer at build time
 
 When adding or editing an app, update **both files**.
@@ -50,11 +50,44 @@ Each app opens in its own `BrowserWindow` via `openAppWindow()` in `ipc.ts`. Win
 Static apps load via `file://` with `webSecurity: false` so local assets load freely.
 Server apps (Python/npm) get a free port assigned, the process is spawned, and the window loads `http://localhost:PORT`.
 
+### macOS hide-on-close
+The main window's `close` event calls `e.preventDefault()` and hides the window instead of quitting (macOS only). `app.isQuitting` is set to `true` only from the tray "Quit" / "Force Quit" menu items. This lets the red X hide the window while keeping the tray icon alive.
+
 ### Single instance
 On startup `killAllPreviousInstances()` runs `pkill -f` to kill any stale processes by name before the new instance starts. This is intentional — `npm run dev` should always produce a fresh window.
 
 ### Settings persistence
-Settings are stored in `app.getPath('userData')/appstore.json`. The `db.ts` functions (`getSettings`, `saveSettings`, `recordClone`) must only be called after `app.whenReady()` because `app.getPath()` requires the app to be ready.
+Settings are stored in `app.getPath('userData')/appstore.json`. The `db.ts` functions must only be called after `app.whenReady()` because `app.getPath()` requires the app to be ready.
+
+`db.ts` exports:
+- `getSettings` / `saveSettings` — localFolder, firstRun, appstoreBackupFolder
+- `recordClone` / `getCloneHistory`
+- `getBackupFolders` / `setBackupFolder` — per-app backup folder paths, keyed by appId
+- `getBackupHistory` / `recordBackup` — last copied file per appId (use `'__appstore__'` as the key for the appstore itself)
+
+### Per-app backup system
+Apps that declare `backupPattern` in `clones.json` support automatic backup:
+1. User sets a backup folder via the amber folder icon on the app card.
+2. `ipc.ts` runs a `setInterval` (3 s) polling `~/Downloads`.
+3. Files matching the pattern are copied using a two-tick size-stability check (prevents partial-write copies).
+4. `db.recordBackup(appId, record)` is called and `backup-copied` is emitted to the renderer.
+
+`backupPattern` uses glob-style `*` wildcards. Write patterns at app-onboarding time in `clones.json`; no runtime detection needed.
+
+### Appstore self-backup
+The appstore can back up its own `appstore.json` settings file:
+- `backup-appstore` IPC handler copies `appstore.json` → `~/Downloads/mindobix-appstore-backup-YYYY-MM-DD.json`
+- `restore-appstore` opens a file picker, validates the JSON (must have a `settings` key), and overwrites `appstore.json`
+- The Downloads poller also watches for `mindobix-appstore-backup-*.json` and auto-copies to `settings.appstoreBackupFolder` when set
+- The sentinel appId `'__appstore__'` is used in `backupHistory` to track the last appstore backup
+- Store header has ↓ (backup) and ↑ (restore) buttons; restore reloads the renderer window on success
+
+### UI state persistence
+- Active filter tab: `localStorage.getItem('activeTab')` — defaults to `'all'`
+- Favorites: `localStorage.getItem('favorites')` — JSON array of appIds
+
+### Releases
+`scripts/publish-release.js` is called by `npm run dist:mac/win/linux` after the build. It reads the version from `package.json`, creates/updates a GitHub Release tagged `v{version}`, and uploads `.dmg`/`.exe`/`.AppImage` artifacts from `dist/` using the `gh` CLI.
 
 ---
 
@@ -65,7 +98,7 @@ cd appstore
 npm install       # first time only
 npm run dev       # start dev server + Electron window
 npm run build     # production build (no window)
-npm run dist:mac  # build + package DMG
+npm run dist:mac  # build + package DMG + publish to GitHub Releases
 ```
 
 ---
@@ -75,10 +108,11 @@ npm run dist:mac  # build + package DMG
 ### Add a new app
 1. Add an entry to `appstore/clones.json`
 2. Add the same entry to `appstore/src/renderer/src/clones.json`
-3. Run `npm run dev` — it appears immediately, no code changes needed
+3. If the app exports backup files from its UI, add a `backupPattern` (e.g. `"myapp-backup-*.json"`) to both entries
+4. Run `npm run dev` — it appears immediately, no code changes needed
 
 ### Change the app icon
-Replace `appstore/build/icon.png` with a 1024×1024 PNG.  
+Replace `appstore/build/icon.png` with a 1024×1024 PNG.
 Or regenerate the default orb: `node appstore/scripts/gen-icon.js`
 
 ### Change window size / title bar
@@ -97,3 +131,4 @@ Edit `createWindow()` in `src/main/index.ts`.
 - Do not use `shell.openExternal()` to launch local apps — use `openAppWindow()` so they open in Electron windows
 - Do not add apps to the store by editing only one copy of `clones.json`
 - Do not set `nodeIntegration: true` on any BrowserWindow
+- Do not add `backupPattern` via runtime detection — write it statically in `clones.json` at app-onboarding time
